@@ -142,4 +142,10 @@ public abstract class OrdenServicio {
             estado = EstadoOrden.PENDIENTE;
         }
     }
+
+    public void registrarInicial() {
+    if (!registrada && estado == EstadoOrden.PENDIENTE) {
+        registrada = true;
+    }
+}
 }

@@ -58,6 +58,10 @@ public class SistemaTH {
         cuadrillas.add(new Cuadrilla(501, 8, true));
         cuadrillas.add(new Cuadrilla(502, 10, false));
         cuadrillas.add(new Cuadrilla(503, 6, true));
+
+        for (OrdenServicio orden : ordenes) {
+        orden.registrarInicial();
+        }
     }
 
     public OrdenServicio buscarOrden(int codigo) {
