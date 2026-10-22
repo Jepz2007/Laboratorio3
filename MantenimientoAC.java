@@ -1,27 +1,27 @@
 import Enumeraciones.Zona;
 
+
 public class MantenimientoAC extends OrdenServicio {
 
     private int capacidadBTU;
 
-    public MantenimientoAC(String codigo, String cliente, String direccion, double horas, Zona zona, int capacidadBTU) {
-        super(codigo, cliente, direccion, horas, zona);
-        this.capacidadBTU = capacidadBTU;
-    }
+    public MantenimientoAC(int codigo, String cliente,
+            String direccion, double horas, Zona zona, int capacidadBTU) {
 
-    public int getCapacidadBTU() {
-        return capacidadBTU;
+        super(codigo, cliente, direccion, horas, zona);
+
+        if (zona != Zona.METROPOLITANA
+                || capacidadBTU < 9000 || capacidadBTU > 60000) {
+            throw new IllegalArgumentException(
+                "Zona o capacidad BTU invalida.");
+        }
+
+        this.capacidadBTU = capacidadBTU;
     }
 
     @Override
     public double calcularCosto() {
-        double costobase = 0;
-        double costoHoras = getHorasEstimadas()*110;
-
-        if (getZona()== Zona.METROPOLITANA){
-            costobase = 100;
-        }
-        return costobase + costoHoras + 80;
+        return 100 + getHorasEstimadas() * 110 + 80;
     }
 
     @Override
@@ -32,5 +32,9 @@ public class MantenimientoAC extends OrdenServicio {
     @Override
     public int getMaxVisitas() {
         return 1;
+    }
+
+    public int getCapacidadBTU() {
+        return capacidadBTU;
     }
 }

@@ -1,7 +1,8 @@
-import java.util.ArrayList;
 
+import java.util.ArrayList;
 import Enumeraciones.EstadoJornada;
 import Enumeraciones.EstadoOrden;
+import Enumeraciones.Zona;
 
 public class SistemaTH {
 
@@ -12,47 +13,130 @@ public class SistemaTH {
     private double ingresosVisitas;
 
     public SistemaTH() {
-        this.ordenes = new ArrayList<>();
-        this.cuadrillas = new ArrayList<>();
-        this.jornadas = new ArrayList<>();
-        this.ingresosRegistro = 0;
-        this.ingresosVisitas = 0;
+        ordenes = new ArrayList<>();
+        cuadrillas = new ArrayList<>();
+        jornadas = new ArrayList<>();
+
+        ingresosRegistro = 0;
+        ingresosVisitas = 0;
+
+        cargarDatosIniciales();
+    }
+
+    private void cargarDatosIniciales() {
+
+        ordenes.add(new Diagnostico(
+            101, "Juan Perez", "Zona 10", 1.0, Zona.METROPOLITANA));
+
+        ordenes.add(new Diagnostico(
+            102, "Maria Lopez", "Mixco", 1.5, Zona.PERIFERICA));
+
+        ordenes.add(new Instalacion(
+            201, "Carlos Garcia", "Zona 1", 2.5,
+            Zona.METROPOLITANA, 5));
+
+        ordenes.add(new Instalacion(
+            202, "Ana Morales", "Amatitlan", 4.0,
+            Zona.PERIFERICA, 3));
+
+        ordenes.add(new InstalacionElectricaCertificada(
+            301, "Pedro Ramirez", "Zona 15", 2.5,
+            Zona.METROPOLITANA, 5, 2000));
+
+        ordenes.add(new InstalacionElectricaCertificada(
+            302, "Sofia Castillo", "Villa Nueva", 3.0,
+            Zona.PERIFERICA, 4, 1500));
+
+        ordenes.add(new MantenimientoAC(
+            401, "Luis Hernandez", "Zona 14", 2.0,
+            Zona.METROPOLITANA, 12000));
+
+        ordenes.add(new MantenimientoAC(
+            402, "Lucia Gomez", "Zona 9", 3.0,
+            Zona.METROPOLITANA, 24000));
+
+        cuadrillas.add(new Cuadrilla(501, 8, true));
+        cuadrillas.add(new Cuadrilla(502, 10, false));
+        cuadrillas.add(new Cuadrilla(503, 6, true));
+    }
+
+    public OrdenServicio buscarOrden(int codigo) {
+        for (OrdenServicio orden : ordenes) {
+            if (orden.getCodigo() == codigo) {
+                return orden;
+            }
+        }
+        return null;
+    }
+
+    public Cuadrilla buscarCuadrilla(int codigo) {
+        for (Cuadrilla cuadrilla : cuadrillas) {
+            if (cuadrilla.getCodigo() == codigo) {
+                return cuadrilla;
+            }
+        }
+        return null;
     }
 
     public Cotizacion cotizar(OrdenServicio orden) {
+        if (orden == null) {
+            throw new IllegalArgumentException("Orden invalida.");
+        }
+
         double costo = orden.calcularCosto();
-        int dias = orden.calcularDiasAtencion();
 
-        Cotizacion cotizacion = new Cotizacion(costo, dias);
+        if (!Double.isFinite(costo) || costo < 0) {
+            throw new IllegalArgumentException("Costo invalido.");
+        }
 
-        return cotizacion;
+        return new Cotizacion(costo, orden.calcularDiasAtencion());
     }
 
     public void registrarOrden(OrdenServicio orden) {
-        if (buscarOrden(orden.getCodigo()) == null) {
 
-        ordenes.add(orden);
+        if (orden == null || orden.getCodigo() <= 0) {
+            System.out.println("Orden invalida.");
 
-        ingresosRegistro += orden.calcularCosto();
+        } else if (orden.isRegistrada()) {
+            System.out.println("La orden ya fue registrada.");
 
-        System.out.println("Orden registrada correctamente.");
+        } else if (buscarOrden(orden.getCodigo()) != null) {
+            System.out.println("Codigo de orden repetido.");
 
         } else {
-            System.out.println("Ya existe una orden con ese código.");
+            double costo = orden.calcularCosto();
+
+            if (!Double.isFinite(costo) || costo < 0) {
+                System.out.println("Costo invalido.");
+                return;
+            }
+
+            orden.registrar(costo);
+            ordenes.add(orden);
+            ingresosRegistro += costo;
+
+            System.out.println("Orden registrada correctamente.");
         }
     }
 
     public void registrarCuadrilla(Cuadrilla cuadrilla) {
-        if (buscarCuadrilla(cuadrilla.getCodigo()) == null) {
 
-        cuadrillas.add(cuadrilla);
-        System.out.println("Cuadrilla registrada correctamente.");
+        if (cuadrilla == null || cuadrilla.getCodigo() <= 0
+                || !Double.isFinite(cuadrilla.getCapacidadHoras())
+                || cuadrilla.getCapacidadHoras() <= 0) {
+            System.out.println("Cuadrilla invalida.");
+
+        } else if (buscarCuadrilla(cuadrilla.getCodigo()) != null) {
+            System.out.println("Codigo de cuadrilla repetido.");
+
         } else {
-            System.out.println("Ya existe una cuadrilla con ese código.");
+            cuadrillas.add(cuadrilla);
+            System.out.println("Cuadrilla registrada correctamente.");
         }
     }
 
-    public Jornada crearJornada(String codigoCuadrilla) {
+    public Jornada crearJornada(int codigoCuadrilla) {
+
         Cuadrilla cuadrilla = buscarCuadrilla(codigoCuadrilla);
 
         if (cuadrilla == null) {
@@ -63,120 +147,77 @@ public class SistemaTH {
         for (Jornada jornada : jornadas) {
             if (jornada.getCuadrilla() == cuadrilla
                     && jornada.getEstado() != EstadoJornada.CERRADA) {
-
-                System.out.println("La cuadrilla ya tiene una jornada abierta.");
+                System.out.println("La cuadrilla tiene una jornada abierta.");
                 return null;
             }
         }
 
-        Jornada nuevaJornada = new Jornada(cuadrilla);
-        jornadas.add(nuevaJornada);
+        Jornada nueva = new Jornada(cuadrilla);
+        jornadas.add(nueva);
 
         System.out.println("Jornada creada correctamente.");
-        return nuevaJornada;
+        return nueva;
     }
 
     public void iniciarJornada(Jornada jornada) {
-        if (!jornadas.contains(jornada)) {
-        System.out.println("La jornada no existe en el sistema.");
+
+        if (jornada == null || !jornadas.contains(jornada)) {
+            System.out.println("La jornada no existe.");
 
         } else if (jornada.getEstado() != EstadoJornada.PREPARACION) {
-            System.out.println("La jornada no está en preparación.");
+            System.out.println("La jornada no esta en preparacion.");
 
         } else {
-            int visitasAdicionales = jornada.iniciar();
+            int adicionales = jornada.iniciar();
 
             if (jornada.getEstado() == EstadoJornada.EN_ATENCION) {
-                ingresosVisitas += visitasAdicionales * 40;
+                ingresosVisitas += adicionales * 40;
 
-                System.out.println("Ingresos por visitas adicionales: Q"
-                        + (visitasAdicionales * 40));
+                System.out.printf(
+                    "Cobro por visitas adicionales: Q%.2f%n",
+                    adicionales * 40.0
+                );
             }
         }
-    }
-
-    public OrdenServicio buscarOrden(String codigo) {
-        for (OrdenServicio orden : ordenes) {
-            if (orden.getCodigo().equals(codigo)) {
-                return orden;
-            }
-        }
-
-        return null;
-    }
-
-    public Cuadrilla buscarCuadrilla(String codigo) {
-        for (Cuadrilla cuadrilla : cuadrillas) {
-            if (cuadrilla.getCodigo().equals(codigo)) {
-                return cuadrilla;
-            }
-        }
-
-    return null;
     }
 
     public void reporteOrdenes() {
 
-        int[][] cantidades = new int[4][5];
+        ArrayList<String> categorias = new ArrayList<>();
 
         for (OrdenServicio orden : ordenes) {
-
-            int categoria = 0;
-            int estadoOrden = 0;
-
-            // Identificar categoria
-            if (orden instanceof InstalacionElectricaCertificada) {
-                categoria = 2;
-
-            } else if (orden instanceof Diagnostico) {
-                categoria = 0;
-
-            } else if (orden instanceof Instalacion) {
-                categoria = 1;
-
-            } else if (orden instanceof MantenimientoAC) {
-                categoria = 3;
+            if (!categorias.contains(orden.getCategoria())) {
+                categorias.add(orden.getCategoria());
             }
-
-            // Identificar estado
-            if (orden.getEstado() == EstadoOrden.PENDIENTE) {
-                estadoOrden = 0;
-
-            } else if (orden.getEstado() == EstadoOrden.ASIGNADA) {
-                estadoOrden = 1;
-
-            } else if (orden.getEstado() == EstadoOrden.EN_ATENCION) {
-                estadoOrden = 2;
-
-            } else if (orden.getEstado() == EstadoOrden.COMPLETADA) {
-                estadoOrden = 3;
-
-            } else if (orden.getEstado() == EstadoOrden.CANCELADA) {
-                estadoOrden = 4;
-            }
-
-            cantidades[categoria][estadoOrden]++;
         }
 
-        String[] categorias = {
-            "Diagnostico",
-            "Instalacion",
-            "Instalacion certificada",
-            "Mantenimiento aire"
-        };
+        EstadoOrden[] estados = EstadoOrden.values();
 
-        System.out.println("REPORTE DE ORDENES");
+        System.out.println("\nREPORTE DE ORDENES");
 
-        System.out.printf("%-25s %10s %10s %10s %10s %10s%n",
-                "Categoria", "Pendiente", "Asignada",
-                "Atencion", "Completada", "Cancelada");
+        System.out.printf("%-32s", "Categoria");
 
-        for (int i = 0; i < 4; i++) {
+        for (EstadoOrden estado : estados) {
+            System.out.printf("%15s", estado);
+        }
 
-            System.out.printf("%-25s", categorias[i]);
+        System.out.println();
 
-            for (int j = 0; j < 5; j++) {
-                System.out.printf("%10d", cantidades[i][j]);
+        for (String categoria : categorias) {
+
+            System.out.printf("%-32s", categoria);
+
+            for (EstadoOrden estado : estados) {
+                int cantidad = 0;
+
+                for (OrdenServicio orden : ordenes) {
+                    if (orden.getCategoria().equals(categoria)
+                            && orden.getEstado() == estado) {
+                        cantidad++;
+                    }
+                }
+
+                System.out.printf("%15d", cantidad);
             }
 
             System.out.println();
@@ -185,69 +226,56 @@ public class SistemaTH {
 
     public void reporteIngresos() {
 
-        double ingresosDiagnostico = 0;
-        double ingresosInstalacion = 0;
-        double ingresosCertificada = 0;
-        double ingresosMantenimiento = 0;
+        ArrayList<String> categorias = new ArrayList<>();
 
         for (OrdenServicio orden : ordenes) {
-
-            double ingresoOrden = orden.getMontoCobrado()
-                                + orden.getCobrosVisitas();
-
-            if (orden instanceof InstalacionElectricaCertificada) {
-                ingresosCertificada += ingresoOrden;
-
-            } else if (orden instanceof Diagnostico) {
-                ingresosDiagnostico += ingresoOrden;
-
-            } else if (orden instanceof Instalacion) {
-                ingresosInstalacion += ingresoOrden;
-
-            } else if (orden instanceof MantenimientoAC) {
-                ingresosMantenimiento += ingresoOrden;
+            if (!categorias.contains(orden.getCategoria())) {
+                categorias.add(orden.getCategoria());
             }
         }
 
-        System.out.println("===== REPORTE DE INGRESOS =====");
+        System.out.println("\nREPORTE DE INGRESOS");
 
-        System.out.println("Ingresos por registro: Q"
-                + ingresosRegistro);
+        System.out.printf("Ingresos por registro: Q%.2f%n",
+                ingresosRegistro);
 
-        System.out.println("Ingresos por visitas adicionales: Q"
-                + ingresosVisitas);
+        System.out.printf("Ingresos por visitas adicionales: Q%.2f%n",
+                ingresosVisitas);
 
-        System.out.println("Ingreso total: Q"
-                + (ingresosRegistro + ingresosVisitas));
+        System.out.printf("Ingreso total: Q%.2f%n",
+                ingresosRegistro + ingresosVisitas);
 
-        System.out.println("===== INGRESOS POR CATEGORIA =====");
+        System.out.println("\nINGRESOS POR CATEGORIA");
 
-        System.out.println("Diagnosticos: Q"
-                + ingresosDiagnostico);
+        for (String categoria : categorias) {
+            double total = 0;
 
-        System.out.println("Instalaciones: Q"
-                + ingresosInstalacion);
+            for (OrdenServicio orden : ordenes) {
+                if (orden.getCategoria().equals(categoria)) {
+                    total += orden.getMontoCobrado();
+                    total += orden.getCobrosVisitas();
+                }
+            }
 
-        System.out.println("Instalaciones certificadas: Q"
-                + ingresosCertificada);
-
-        System.out.println("Mantenimientos: Q"
-                + ingresosMantenimiento);
+            System.out.printf("%s: Q%.2f%n", categoria, total);
+        }
     }
 
     public void reporteJornadas() {
 
-        System.out.println("===== REPORTE DE JORNADAS =====");
+        boolean hayJornadas = false;
+
+        System.out.println("\nREPORTE DE JORNADAS");
 
         for (Jornada jornada : jornadas) {
-
             if (jornada.getEstado() != EstadoJornada.CERRADA) {
+
+                hayJornadas = true;
 
                 System.out.println("Cuadrilla: "
                         + jornada.getCuadrilla().getCodigo());
 
-                System.out.println("Estado: "
-                        + jornada.getEstado());
+                System.out.println("Estado: " + jornada.getEstado());
 
                 System.out.println("Horas asignadas: "
                         + jornada.calcularHorasAsignadas());
@@ -255,8 +283,12 @@ public class SistemaTH {
                 System.out.println("Capacidad disponible: "
                         + jornada.calcularCapacidadDisponible());
 
-                System.out.println("-------------------------");
+                System.out.println();
             }
+        }
+
+        if (!hayJornadas) {
+            System.out.println("No hay jornadas abiertas.");
         }
     }
 }

@@ -10,6 +10,10 @@ public class Jornada {
     private EstadoJornada estado;
 
     public Jornada(Cuadrilla cuadrilla) {
+        if (cuadrilla == null) {
+            throw new IllegalArgumentException("Cuadrilla invalida.");
+        }
+
         this.cuadrilla = cuadrilla;
         this.ordenes = new ArrayList<>();
         this.estado = EstadoJornada.PREPARACION;
@@ -17,22 +21,29 @@ public class Jornada {
 
     public void agregarOrden(OrdenServicio orden) {
 
-        if (estado != EstadoJornada.PREPARACION) {
-        System.out.println("La jornada no está en preparación.");
+        if (orden == null) {
+            System.out.println("Orden invalida.");
 
-        } else if (orden.getEstado() != EstadoOrden.PENDIENTE) {
-            System.out.println("La orden no está pendiente.");
+        } else if (estado != EstadoJornada.PREPARACION) {
+            System.out.println("La jornada no esta en preparacion.");
+
+        } else if (!orden.isRegistrada()
+                || orden.getEstado() != EstadoOrden.PENDIENTE) {
+            System.out.println("La orden no esta disponible.");
+
+        } else if (ordenes.contains(orden)) {
+            System.out.println("La orden ya pertenece a esta jornada.");
 
         } else if (orden.getHorasEstimadas() > calcularCapacidadDisponible()) {
             System.out.println("No hay suficiente capacidad.");
 
-        } else if (orden instanceof MantenimientoAC && !cuadrilla.isCertificadaRefrigeracion()) {
-            System.out.println("La cuadrilla no tiene certificación.");
+        } else if (orden instanceof MantenimientoAC
+                && !cuadrilla.isCertificadaRefrigeracion()) {
+            System.out.println("La cuadrilla no tiene certificacion.");
 
         } else {
-            ordenes.add(orden);
             orden.asignar();
-
+            ordenes.add(orden);
             System.out.println("Orden asignada correctamente.");
         }
     }
@@ -40,27 +51,26 @@ public class Jornada {
     public void retirarOrden(OrdenServicio orden) {
 
         if (estado != EstadoJornada.PREPARACION) {
-        System.out.println("La jornada no está en preparación.");
+            System.out.println("La jornada no esta en preparacion.");
 
-        } else if (!ordenes.contains(orden)) {
+        } else if (orden == null || !ordenes.contains(orden)) {
             System.out.println("La orden no pertenece a esta jornada.");
 
         } else {
-            ordenes.remove(orden);
             orden.retirar();
-
+            ordenes.remove(orden);
             System.out.println("Orden retirada correctamente.");
         }
     }
 
     public double calcularHorasAsignadas() {
-        double totalhoras = 0;
+        double total = 0;
 
-        for (OrdenServicio orden: ordenes){
-            totalhoras += orden.getHorasEstimadas();
+        for (OrdenServicio orden : ordenes) {
+            total += orden.getHorasEstimadas();
         }
 
-        return totalhoras;
+        return total;
     }
 
     public double calcularCapacidadDisponible() {
@@ -70,44 +80,49 @@ public class Jornada {
     public int iniciar() {
 
         if (estado != EstadoJornada.PREPARACION) {
-            System.out.println("La jornada no está en preparación.");
+            System.out.println("La jornada no esta en preparacion.");
             return 0;
-
-        } else if (ordenes.isEmpty()) {
-            System.out.println("No se puede iniciar una jornada vacía.");
-            return 0;
-
-        } else {
-            int visitasAdicionales = 0;
-
-            estado = EstadoJornada.EN_ATENCION;
-
-            for (OrdenServicio orden : ordenes) {
-
-                if (orden.iniciarVisita()) {
-                    visitasAdicionales++;
-                    orden.registrarCobroVisita();
-                }
-            }
-
-            System.out.println("Jornada iniciada correctamente.");
-
-            return visitasAdicionales;
         }
+
+        if (ordenes.isEmpty()) {
+            System.out.println("No se puede iniciar una jornada vacia.");
+            return 0;
+        }
+
+        for (OrdenServicio orden : ordenes) {
+            if (orden.getEstado() != EstadoOrden.ASIGNADA
+                    || orden.getVisitas() >= orden.getMaxVisitas()) {
+                System.out.println("Hay una orden que no puede iniciar.");
+                return 0;
+            }
+        }
+
+        int adicionales = 0;
+
+        for (OrdenServicio orden : ordenes) {
+            if (orden.iniciarVisita()) {
+                adicionales++;
+            }
+        }
+
+        estado = EstadoJornada.EN_ATENCION;
+        System.out.println("Jornada iniciada correctamente.");
+
+        return adicionales;
     }
 
     public void registrarResultado(OrdenServicio orden, boolean completada) {
-        if (estado != EstadoJornada.EN_ATENCION) {
-            System.out.println("La jornada no está en atención.");
 
-        } else if (!ordenes.contains(orden)) {
+        if (estado != EstadoJornada.EN_ATENCION) {
+            System.out.println("La jornada no esta en atencion.");
+
+        } else if (orden == null || !ordenes.contains(orden)) {
             System.out.println("La orden no pertenece a esta jornada.");
 
         } else if (orden.getEstado() != EstadoOrden.EN_ATENCION) {
-            System.out.println("La orden ya tiene un resultado.");
+            System.out.println("La orden ya tiene resultado.");
 
         } else {
-
             orden.registrarResultado(completada);
             System.out.println("Resultado registrado correctamente.");
             cerrar();
@@ -115,6 +130,7 @@ public class Jornada {
     }
 
     private void cerrar() {
+
         for (OrdenServicio orden : ordenes) {
             if (orden.getEstado() == EstadoOrden.EN_ATENCION) {
                 return;

@@ -1,18 +1,24 @@
+
 public class Cuadrilla {
 
-    private String codigo;
+    private int codigo;
     private double capacidadHoras;
     private boolean certificadaRefrigeracion;
 
-    public Cuadrilla(String codigo, double capacidadHoras,
+    public Cuadrilla(int codigo, double capacidadHoras,
             boolean certificadaRefrigeracion) {
+
+        if (codigo <= 0 || !Double.isFinite(capacidadHoras)
+                || capacidadHoras <= 0) {
+            throw new IllegalArgumentException("Datos de cuadrilla invalidos.");
+        }
 
         this.codigo = codigo;
         this.capacidadHoras = capacidadHoras;
         this.certificadaRefrigeracion = certificadaRefrigeracion;
     }
 
-    public String getCodigo() {
+    public int getCodigo() {
         return codigo;
     }
 

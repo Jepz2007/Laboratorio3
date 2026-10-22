@@ -1,9 +1,10 @@
 import Enumeraciones.EstadoOrden;
 import Enumeraciones.Zona;
 
+
 public abstract class OrdenServicio {
 
-    private String codigo;
+    private int codigo;
     private String cliente;
     private String direccion;
     private double horasEstimadas;
@@ -12,9 +13,17 @@ public abstract class OrdenServicio {
     private int visitas;
     private double montoCobrado;
     private double cobrosVisitas;
+    private boolean registrada;
 
-    protected OrdenServicio(String codigo, String cliente,
+    protected OrdenServicio(int codigo, String cliente,
             String direccion, double horasEstimadas, Zona zona) {
+
+        if (codigo <= 0 || cliente == null || cliente.trim().isEmpty()
+                || direccion == null || direccion.trim().isEmpty()
+                || !Double.isFinite(horasEstimadas)
+                || horasEstimadas <= 0 || zona == null) {
+            throw new IllegalArgumentException("Datos de orden invalidos.");
+        }
 
         this.codigo = codigo;
         this.cliente = cliente;
@@ -25,16 +34,27 @@ public abstract class OrdenServicio {
         this.visitas = 0;
         this.montoCobrado = 0;
         this.cobrosVisitas = 0;
+        this.registrada = false;
     }
 
     public abstract double calcularCosto();
-
     public abstract int calcularDiasAtencion();
-
     public abstract int getMaxVisitas();
 
-    public String getCodigo() {
+    public String getCategoria() {
+        return getClass().getSimpleName();
+    }
+
+    public int getCodigo() {
         return codigo;
+    }
+
+    public String getCliente() {
+        return cliente;
+    }
+
+    public String getDireccion() {
+        return direccion;
     }
 
     public double getHorasEstimadas() {
@@ -57,50 +77,69 @@ public abstract class OrdenServicio {
         return montoCobrado;
     }
 
-    public void asignar() {
-        if (estado == EstadoOrden.PENDIENTE){
-            estado = EstadoOrden.ASIGNADA;
+    public double getCobrosVisitas() {
+        return cobrosVisitas;
+    }
+
+    public boolean isRegistrada() {
+        return registrada;
+    }
+
+    public void registrar(double monto) {
+        if (registrada || estado != EstadoOrden.PENDIENTE
+                || !Double.isFinite(monto) || monto < 0) {
+            throw new IllegalStateException("No se puede registrar la orden.");
         }
+
+        montoCobrado = monto;
+        registrada = true;
+    }
+
+    public void asignar() {
+        if (!registrada || estado != EstadoOrden.PENDIENTE
+                || visitas >= getMaxVisitas()) {
+            throw new IllegalStateException("No se puede asignar la orden.");
+        }
+
+        estado = EstadoOrden.ASIGNADA;
     }
 
     public void retirar() {
-        if (estado == EstadoOrden.ASIGNADA){
-            estado = EstadoOrden.PENDIENTE;
+        if (estado != EstadoOrden.ASIGNADA) {
+            throw new IllegalStateException("La orden no esta asignada.");
         }
+
+        estado = EstadoOrden.PENDIENTE;
     }
 
     public boolean iniciarVisita() {
-        if (estado == EstadoOrden.ASIGNADA) {
+        if (estado != EstadoOrden.ASIGNADA
+                || visitas >= getMaxVisitas()) {
+            throw new IllegalStateException("No se puede iniciar la visita.");
+        }
+
         visitas++;
         estado = EstadoOrden.EN_ATENCION;
 
-        return visitas > 1;
-        }else{
-        return false;
+        if (visitas > 1) {
+            cobrosVisitas += 40;
+            return true;
+        } else {
+            return false;
         }
     }
 
     public void registrarResultado(boolean completada) {
-
-        if (estado == EstadoOrden.EN_ATENCION) {
-
-            if (completada) {
-                estado = EstadoOrden.COMPLETADA;
-
-            } else if (visitas >= getMaxVisitas()) {
-                estado = EstadoOrden.CANCELADA;
-
-            } else {
-                estado = EstadoOrden.PENDIENTE;
-            }
+        if (estado != EstadoOrden.EN_ATENCION) {
+            throw new IllegalStateException("La orden no esta en atencion.");
         }
-    }
 
-    public void registrarCobroVisita() {
-    cobrosVisitas += 40;
-    }
-
-    public double getCobrosVisitas() {
-    return cobrosVisitas;
+        if (completada) {
+            estado = EstadoOrden.COMPLETADA;
+        } else if (visitas >= getMaxVisitas()) {
+            estado = EstadoOrden.CANCELADA;
+        } else {
+            estado = EstadoOrden.PENDIENTE;
+        }
     }
 }

@@ -1,27 +1,34 @@
 import Enumeraciones.Zona;
 
+
 public class Diagnostico extends OrdenServicio {
 
-    public Diagnostico(String codigo, String cliente, String direccion, double horas, Zona zona) {
+    public Diagnostico(int codigo, String cliente,
+            String direccion, double horas, Zona zona) {
 
         super(codigo, cliente, direccion, horas, zona);
+
+        if (horas > 1.5) {
+            throw new IllegalArgumentException(
+                "Un diagnostico no puede superar 1.5 horas.");
+        }
     }
 
     @Override
     public double calcularCosto() {
-        if (getZona()== Zona.METROPOLITANA){
+        if (getZona() == Zona.METROPOLITANA) {
             return 150;
-        }else{
-        return 225;
+        } else {
+            return 225;
         }
     }
 
     @Override
     public int calcularDiasAtencion() {
-        if (getZona()== Zona.METROPOLITANA){
+        if (getZona() == Zona.METROPOLITANA) {
             return 1;
-        }else{
-        return 2;
+        } else {
+            return 2;
         }
     }
 
