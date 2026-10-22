@@ -15,7 +15,7 @@ public abstract class OrdenServicio {
     private double cobrosVisitas;
     private boolean registrada;
 
-    protected OrdenServicio(int codigo, String cliente,
+    public OrdenServicio(int codigo, String cliente,
             String direccion, double horasEstimadas, Zona zona) {
 
         if (codigo <= 0 || cliente == null || cliente.trim().isEmpty()

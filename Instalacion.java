@@ -22,7 +22,7 @@ public class Instalacion extends OrdenServicio {
         return puntos * 0.75;
     }
 
-    protected int calcularHorasFacturables() {
+    public  int calcularHorasFacturables() {
         double horasPuntos = calcularHorasPorPuntos();
         double horasMayores = Math.max(horasPuntos, getHorasEstimadas());
 
